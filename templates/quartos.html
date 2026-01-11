@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="rooms">
+    <div class="container">
+        <h2>Nossos Quartos</h2>
+        <p class="subtitle">Conforto e qualidade para sua estadia perfeita</p>
+        
+        <div class="rooms-grid">
+            {% for quarto in quartos %}
+            <div class="room-card">
+                <div class="room-image">
+                    <i class="fas fa-bed"></i>
+                </div>
+                <div class="room-content">
+                    <h3>{{ quarto.nome }}</h3>
+                    <p>{{ quarto.descricao }}</p>
+                    <div class="price">{{ quarto.preco }}</div>
+                    <h4>Comodidades:</h4>
+                    <ul>
+                        {% for comodidade in quarto.comodidades %}
+                        <li><i class="fas fa-check"></i> {{ comodidade }}</li>
+                        {% endfor %}
+                    </ul>
+                    <button class="btn btn-small">Reservar Agora</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

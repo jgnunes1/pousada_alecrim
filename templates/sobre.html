@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="about">
+    <div class="container">
+        <h2>Sobre a {{ info.nome }}</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <p>{{ info.descricao }}</p>
+                <p>Localizada em Saquarema, conhecida como a "Capital do Surf", nossa pousada oferece o equilíbrio perfeito entre tranquilidade e acesso às belas praias da região.</p>
+                <p>Nosso compromisso é proporcionar uma estadia memorável, com atendimento personalizado e todos os cuidados para que você se sinta em casa.</p>
+                
+                <h3>Nosso Café da Manhã</h3>
+                <p>Um dos nossos maiores orgulhos é o café da manhã, que inclui:</p>
+                <ul>
+                    <li>Pães caseiros e bolos frescos</li>
+                    <li>Frutas da estação</li>
+                    <li>Sucos naturais</li>
+                    <li>Ovos preparados no momento</li>
+                    <li>Queijos e frios regionais</li>
+                    <li>Café especial da região</li>
+                </ul>
+            </div>
+            <div class="about-image">
+                <div class="image-placeholder">
+                    <i class="fas fa-image"></i>
+                    <p>Imagem da pousada</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
