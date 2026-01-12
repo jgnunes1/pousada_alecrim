@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Cardápio do Almoço</h1>
+    <p class="subtitle">Pratos especiais preparados com carinho pela nossa cozinha</p>
+    
+    {% if cardapio %}
+        {% for categoria, items in cardapio.items() %}
+        <section class="categoria-cardapio">
+            <h2>{{ categoria|title }}</h2>
+            <div class="cardapio-grid">
+                {% for item in items %}
+                <div class="cardapio-item">
+                    <div class="cardapio-item-header">
+                        <h3>{{ item.nome }}</h3>
+                        <span class="preco">R$ {{ "%.2f"|format(item.preco) }}</span>
+                    </div>
+                    <p class="descricao">{{ item.descricao }}</p>
+                    {% if item.disponivel %}
+                    <span class="disponivel"><i class="fas fa-check"></i> Disponível</span>
+                    {% else %}
+                    <span class="indisponivel"><i class="fas fa-times"></i> Indisponível</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-utensils fa-3x"></i>
+            <p>Cardápio em atualização. Em breve novidades!</p>
+        </div>
+    {% endif %}
+    
+    <div class="cardapio-info">
+        <h3><i class="fas fa-info-circle"></i> Informações</h3>
+        <ul>
+            <li>Serviço de almoço disponível para hóspedes e visitantes</li>
+            <li>Horário: 12:00 às 15:00</li>
+            <li>Reservas com antecedência recomendadas</li>
+            <li>Preços podem sofrer alteração</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.categoria-cardapio {
+    margin: 3rem 0;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.categoria-cardapio h2 {
+    color: #2c3e50;
+    border-bottom: 3px solid #ffd166;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.cardapio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.cardapio-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.cardapio-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.cardapio-item h3 {
+    color: #2c3e50;
+    margin: 0;
+    flex: 1;
+}
+
+.preco {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    margin-left: 1rem;
+}
+
+.descricao {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.disponivel {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.indisponivel {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #666;
+}
+
+.cardapio-info {
+    background: #e8f4fc;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-top: 3rem;
+}
+
+.cardapio-info ul {
+    list-style: none;
+    padding: 0;
+}
+
+.cardapio-info li {
+    padding: 0.5rem 0;
+    color: #2c3e50;
+}
+</style>
+{% endblock %}
