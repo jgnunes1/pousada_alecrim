@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-bed"></i> Gerenciar Quartos</h1>
+        <p>Total: {{ quartos|length }} quartos cadastrados</p>
+        
+        <div class="admin-actions">
+            <a href="{{ url_for('admin.novo_quarto') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Novo Quarto
+            </a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="admin-content">
+        <div class="filters">
+            <div class="filter-group">
+                <label for="filter-tipo">Filtrar por tipo:</label>
+                <select id="filter-tipo" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="suíte">Suíte</option>
+                    <option value="quarto">Quarto</option>
+                    <option value="chalé">Chalé</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-status">Filtrar por status:</label>
+                <select id="filter-status" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="disponível">Disponível</option>
+                    <option value="ocupado">Ocupado</option>
+                    <option value="manutenção">Manutenção</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-andar">Filtrar por andar:</label>
+                <select id="filter-andar" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="Térreo">Térreo</option>
+                    <option value="1º Andar">1º Andar</option>
+                    <option value="2º Andar">2º Andar</option>
+                    <option value="Área externa">Área externa</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="admin-table" id="quartos-table">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Tipo</th>
+                        <th>Andar</th>
+                        <th>Capacidade</th>
+                        <th>Preço/Diária</th>
+                        <th>Status</th>
+                        <th>Reservas</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quarto in quartos %}
+                    <tr data-tipo="{{ quarto.tipo }}" 
+                        data-status="{{ quarto.status.value }}"
+                        data-andar="{{ quarto.andar }}">
+                        <td><strong>{{ quarto.numero }}</strong></td>
+                        <td>
+                            <span class="badge tipo-{{ quarto.tipo }}">
+                                {{ quarto.tipo|title }}
+                            </span>
+                        </td>
+                        <td>{{ quarto.andar }}</td>
+                        <td>
+                            <span class="capacidade">
+                                <i class="fas fa-user"></i> {{ quarto.capacidade }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="preco">
+                                R$ {{ "%.2f"|format(quarto.preco_diaria) }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" 
+                                  action="{{ url_for('admin.alterar_status_quarto', id=quarto.id) }}"
+                                  class="status-form">
+                                <select name="status" class="status-select" 
+                                        data-quarto="{{ quarto.numero }}"
+                                        onchange="this.form.submit()">
+                                    {% for status_option in ['disponível', 'ocupado', 'manutenção'] %}
+                                    <option value="{{ status_option }}" 
+                                            {% if quarto.status.value == status_option %}selected{% endif %}>
+                                        {{ status_option|title }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>
+                            {% set reservas_count = quarto.reservas|length %}
+                            {% if reservas_count > 0 %}
+                            <a href="{{ url_for('admin.admin_reservas') }}?quarto={{ quarto.id }}"
+                               class="reservas-link"
+                               title="Ver reservas deste quarto">
+                                {{ reservas_count }} reserva{% if reservas_count > 1 %}s{% endif %}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Nenhuma</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{{ url_for('admin.editar_quarto', id=quarto.id) }}" 
+                                   class="btn-action btn-edit"
+                                   title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <a href="{{ url_for('main.quartos') }}?detalhe={{ quarto.id }}"
+                                   class="btn-action btn-view"
+                                   title="Visualizar no site"
+                                   target="_blank">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                <button type="button" 
+                                        class="btn-action btn-delete"
+                                        title="Excluir"
+                                        onclick="confirmarExclusao({{ quarto.id }}, '{{ quarto.numero }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <i class="fas fa-bed fa-2x"></i>
+                            <p>Nenhum quarto cadastrado.</p>
+                            <a href="{{ url_for('admin.novo_quarto') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Cadastrar Primeiro Quarto
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <h3><i class="fas fa-chart-pie"></i> Resumo por Tipo</h3>
+                <ul>
+                    {% set suites = quartos|selectattr('tipo', 'equalto', 'suíte')|list %}
+                    {% set quartos_count = quartos|selectattr('tipo', 'equalto', 'quarto')|list %}
+                    {% set chales = quartos|selectattr('tipo', 'equalto', 'chalé')|list %}
+                    
+                    <li>Suítes: <strong>{{ suites|length }}</strong></li>
+                    <li>Quartos: <strong>{{ quartos_count|length }}</strong></li>
+                    <li>Chalés: <strong>{{ chales|length }}</strong></li>
+                </ul>
+            </div>
+            
+            <div class="summary-card">
+                <h3><i class="fas fa-chart-bar"></i> Resumo por Status</h3>
+                <ul>
+                    {% set disponiveis = quartos|selectattr('status.value', 'equalto', 'disponível')|list %}
+                    {% set ocupados = quartos|selectattr('status.value', 'equalto', 'ocupado')|list %}
+                    {% set manutencao = quartos|selectattr('status.value', 'equalto', 'manutenção')|list %}
+                    
+                    <li>Disponíveis: <strong>{{ disponiveis|length }}</strong></li>
+                    <li>Ocupados: <strong>{{ ocupados|length }}</strong></li>
+                    <li>Em manutenção: <strong>{{ manutencao|length }}</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.admin-header {
+    margin-bottom: 2rem;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.admin-table th {
+    background: #2c3e50;
+    color: white;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.tipo-suíte {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.tipo-quarto {
+    background: #d4edda;
+    color: #155724;
+}
+
+.tipo-chalé {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.capacidade {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.preco {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.status-form {
+    display: inline-block;
+}
+
+.status-select {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.reservas-link {
+    color: #4a6491;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.reservas-link:hover {
+    text-decoration: underline;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    width: 35px;
+    height: 35px;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.btn-edit {
+    background: #4a6491;
+    color: white;
+}
+
+.btn-edit:hover {
+    background: #2c3e50;
+}
+
+.btn-view {
+    background: #28a745;
+    color: white;
+}
+
+.btn-view:hover {
+    background: #218838;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.empty-state i {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.summary-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.summary-card h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.summary-card li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1.5rem;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros
+    const tipoFilter = document.getElementById('filter-tipo');
+    const statusFilter = document.getElementById('filter-status');
+    const andarFilter = document.getElementById('filter-andar');
+    const tableRows = document.querySelectorAll('#quartos-table tbody tr');
+    
+    function filtrarTabela() {
+        const tipo = tipoFilter.value;
+        const status = statusFilter.value;
+        const andar = andarFilter.value;
+        
+        tableRows.forEach(row => {
+            const rowTipo = row.getAttribute('data-tipo');
+            const rowStatus = row.getAttribute('data-status');
+            const rowAndar = row.getAttribute('data-andar');
+            
+            const mostraTipo = !tipo || rowTipo === tipo;
+            const mostraStatus = !status || rowStatus === status;
+            const mostraAndar = !andar || rowAndar === andar;
+            
+            if (mostraTipo && mostraStatus && mostraAndar) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    
+    tipoFilter.addEventListener('change', filtrarTabela);
+    statusFilter.addEventListener('change', filtrarTabela);
+    andarFilter.addEventListener('change', filtrarTabela);
+    
+    // Confirmação de exclusão
+    window.confirmarExclusao = function(quartoId, quartoNumero) {
+        if (confirm(`Tem certeza que deseja excluir o quarto ${quartoNumero}?\n\nEsta ação não pode ser desfeita!`)) {
+            // Criar formulário dinâmico para exclusão
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/quartos/excluir/${quartoId}`;
+            
+            // Adicionar CSRF token
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    };
+    
+    // Confirmação de alteração de status
+    const statusSelects = document.querySelectorAll('.status-select');
+    statusSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            const quartoNumero = this.getAttribute('data-quarto');
+            const novoStatus = this.value;
+            
+            if (!confirm(`Alterar status do quarto ${quartoNumero} para ${novoStatus}?`)) {
+                this.form.reset();
+                return false;
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
