@@ -1,326 +1,149 @@
-# app.py - Versão atualizada com MySQL
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_mysqldb import MySQL
+# app.py - Versão refatorada
+import os
+from flask import Flask
 from config import Config
-import MySQLdb.cursors
-import re
-from datetime import datetime, timedelta
+from models import db
+from routes import init_app
+from datetime import datetime
 
-app = Flask(__name__)
-app.config.from_object(Config)
-
-# Inicializar MySQL
-mysql = MySQL(app)
-
-# Dados estáticos da pousada (mantemos para compatibilidade)
-POUSADA_INFO = {
-    'nome': 'Pousada Alegrim',
-    'slogan': 'Conforto e sabor em Saquarema',
-    'diferencial': 'Oferecemos um rico café da manhã como parte da diária',
-    'endereco': 'Rua 95, nº 362 - Jaconé, Saquarema - RJ',
-    'telefone': '(22) 99999-9999',
-    'email': 'contato@pousadaalegrim.com',
-    'descricao': 'Uma pousada acolhedora no coração de Saquarema, perfeita para quem busca descanso e contato com a natureza.',
-}
-
-# Função para criar tabelas (executar apenas uma vez)
-def criar_tabelas():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        # Tabela de quartos
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS quartos (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                numero VARCHAR(10) UNIQUE NOT NULL,
-                tipo ENUM('suíte', 'quarto', 'chalé') NOT NULL,
-                andar VARCHAR(20),
-                descricao TEXT,
-                capacidade INT DEFAULT 2,
-                preco_diaria DECIMAL(10,2) NOT NULL,
-                status ENUM('disponível', 'ocupado', 'manutenção') DEFAULT 'disponível',
-                fotos TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Tabela de hóspedes
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS hospedes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nome_completo VARCHAR(100) NOT NULL,
-                cpf VARCHAR(14) UNIQUE NOT NULL,
-                email VARCHAR(100),
-                telefone VARCHAR(20),
-                endereco TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Tabela de reservas
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS reservas (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                quarto_id INT,
-                hospede_id INT,
-                data_checkin DATE NOT NULL,
-                data_checkout DATE NOT NULL,
-                num_hospedes INT DEFAULT 1,
-                valor_total DECIMAL(10,2),
-                status ENUM('confirmada', 'pendente', 'cancelada', 'concluída') DEFAULT 'pendente',
-                observacoes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (quarto_id) REFERENCES quartos(id),
-                FOREIGN KEY (hospede_id) REFERENCES hospedes(id)
-            )
-        ''')
-        
-        # Tabela de cardápio
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS cardapio (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nome VARCHAR(100) NOT NULL,
-                descricao TEXT,
-                categoria ENUM('entrada', 'principal', 'sobremesa', 'bebida') NOT NULL,
-                preco DECIMAL(10,2) NOT NULL,
-                disponivel BOOLEAN DEFAULT TRUE,
-                foto VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Tabela de pedidos
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS pedidos (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                reserva_id INT,
-                item_id INT,
-                quantidade INT DEFAULT 1,
-                observacoes TEXT,
-                status ENUM('pendente', 'preparando', 'pronto', 'entregue') DEFAULT 'pendente',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (reserva_id) REFERENCES reservas(id),
-                FOREIGN KEY (item_id) REFERENCES cardapio(id)
-            )
-        ''')
-        
-        mysql.connection.commit()
-        print("✅ Tabelas criadas com sucesso!")
-        
-    except Exception as e:
-        print(f"❌ Erro ao criar tabelas: {e}")
-
-# Rotas existentes (mantemos as anteriores)
-@app.route('/')
-def index():
-    return render_template('index.html', info=POUSADA_INFO)
-
-@app.route('/sobre')
-def sobre():
-    return render_template('sobre.html', info=POUSADA_INFO)
-
-@app.route('/quartos')
-def quartos():
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM quartos ORDER BY tipo, numero')
-    quartos_db = cursor.fetchall()
-    cursor.close()
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
     
-    return render_template('quartos.html', info=POUSADA_INFO, quartos=quartos_db)
-
-@app.route('/contato')
-def contato():
-    return render_template('contato.html', info=POUSADA_INFO)
-
-# NOVAS ROTAS PARA GERENCIAMENTO
-
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        
-        # Autenticação simples (em produção, usar hash!)
-        if username == 'admin' and password == 'pousada123':
-            session['admin_logged_in'] = True
-            flash('Login realizado com sucesso!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Credenciais inválidas!', 'danger')
+    # Inicializar extensões
+    db.init_app(app)
     
-    return render_template('admin/login.html')
-
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
+    # Registrar blueprints
+    init_app(app)
     
-    cursor = mysql.connection.cursor()
-    
-    # Estatísticas
-    cursor.execute('SELECT COUNT(*) as total FROM quartos')
-    total_quartos = cursor.fetchone()['total']
-    
-    cursor.execute('SELECT COUNT(*) as total FROM reservas WHERE status = "confirmada"')
-    reservas_ativas = cursor.fetchone()['total']
-    
-    cursor.execute('SELECT COUNT(*) as total FROM hospedes')
-    total_hospedes = cursor.fetchone()['total']
-    
-    cursor.execute('SELECT SUM(valor_total) as total FROM reservas WHERE MONTH(created_at) = MONTH(CURDATE())')
-    receita_mes = cursor.fetchone()['total'] or 0
-    
-    cursor.close()
-    
-    return render_template('admin/dashboard.html',
-                         total_quartos=total_quartos,
-                         reservas_ativas=reservas_ativas,
-                         total_hospedes=total_hospedes,
-                         receita_mes=receita_mes)
-
-@app.route('/admin/quartos')
-def admin_quartos():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM quartos ORDER BY tipo, numero')
-    quartos = cursor.fetchall()
-    cursor.close()
-    
-    return render_template('admin/quartos.html', quartos=quartos)
-
-@app.route('/admin/reservas')
-def admin_reservas():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT r.*, q.numero, h.nome_completo 
-        FROM reservas r
-        JOIN quartos q ON r.quarto_id = q.id
-        JOIN hospedes h ON r.hospede_id = h.id
-        ORDER BY r.data_checkin DESC
-    ''')
-    reservas = cursor.fetchall()
-    cursor.close()
-    
-    return render_template('admin/reservas.html', reservas=reservas)
-
-@app.route('/admin/cardapio')
-def admin_cardapio():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-    
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM cardapio ORDER BY categoria, nome')
-    cardapio = cursor.fetchall()
-    cursor.close()
-    
-    return render_template('admin/cardapio.html', cardapio=cardapio)
-
-@app.route('/admin/logout')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    flash('Logout realizado com sucesso!', 'success')
-    return redirect(url_for('admin_login'))
-
-# ROTA PÚBLICA PARA RESERVAS
-@app.route('/reservar', methods=['GET', 'POST'])
-def reservar():
-    if request.method == 'POST':
-        # Capturar dados do formulário
-        nome = request.form['nome']
-        cpf = request.form['cpf']
-        email = request.form['email']
-        telefone = request.form['telefone']
-        quarto_id = request.form['quarto_id']
-        checkin = request.form['checkin']
-        checkout = request.form['checkout']
-        num_hospedes = request.form['num_hospedes']
-        
-        try:
-            cursor = mysql.connection.cursor()
-            
-            # Verificar se hóspede já existe
-            cursor.execute('SELECT id FROM hospedes WHERE cpf = %s', (cpf,))
-            hospede = cursor.fetchone()
-            
-            if not hospede:
-                # Inserir novo hóspede
-                cursor.execute('''
-                    INSERT INTO hospedes (nome_completo, cpf, email, telefone)
-                    VALUES (%s, %s, %s, %s)
-                ''', (nome, cpf, email, telefone))
-                hospede_id = cursor.lastrowid
-            else:
-                hospede_id = hospede['id']
-            
-            # Calcular valor total
-            cursor.execute('SELECT preco_diaria FROM quartos WHERE id = %s', (quarto_id,))
-            quarto = cursor.fetchone()
-            preco_diaria = quarto['preco_diaria']
-            
-            # Calcular dias
-            data_inicio = datetime.strptime(checkin, '%Y-%m-%d')
-            data_fim = datetime.strptime(checkout, '%Y-%m-%d')
-            dias = (data_fim - data_inicio).days
-            valor_total = dias * preco_diaria
-            
-            # Inserir reserva
-            cursor.execute('''
-                INSERT INTO reservas (quarto_id, hospede_id, data_checkin, data_checkout, 
-                                    num_hospedes, valor_total, status)
-                VALUES (%s, %s, %s, %s, %s, %s, 'pendente')
-            ''', (quarto_id, hospede_id, checkin, checkout, num_hospedes, valor_total))
-            
-            mysql.connection.commit()
-            cursor.close()
-            
-            flash('Reserva realizada com sucesso! Aguarde confirmação.', 'success')
-            return redirect(url_for('index'))
-            
-        except Exception as e:
-            flash(f'Erro ao realizar reserva: {str(e)}', 'danger')
-    
-    # GET: mostrar formulário de reserva
-    cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM quartos WHERE status = "disponível"')
-    quartos_disponiveis = cursor.fetchall()
-    cursor.close()
-    
-    return render_template('reservar.html', quartos=quartos_disponiveis)
-
-# ROTA PÚBLICA PARA CARDÁPIO
-@app.route('/cardapio')
-def ver_cardapio():
-    cursor = mysql.connection.cursor()
-    cursor.execute('''
-        SELECT * FROM cardapio 
-        WHERE disponivel = TRUE 
-        ORDER BY categoria, nome
-    ''')
-    cardapio = cursor.fetchall()
-    cursor.close()
-    
-    # Agrupar por categoria
-    cardapio_agrupado = {
-        'entrada': [],
-        'principal': [],
-        'sobremesa': [],
-        'bebida': []
-    }
-    
-    for item in cardapio:
-        cardapio_agrupado[item['categoria']].append(item)
-    
-    return render_template('cardapio.html', cardapio=cardapio_agrupado)
-
-# EXECUTAR APLICAÇÃO
-if __name__ == '__main__':
-    # Criar tabelas na primeira execução
+    # Criar banco de dados e dados iniciais
     with app.app_context():
-        criar_tabelas()
-        popular_dados_iniciais()  # Criaremos esta função
+        criar_banco_dados(app)
+    
+    # Filtros de template
+    @app.template_filter('format_currency')
+    def format_currency(value):
+        return f'R$ {float(value):,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    @app.template_filter('format_date')
+    def format_date(value, format='%d/%m/%Y'):
+        if isinstance(value, str):
+            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return value.strftime(format)
+    
+    return app
+
+def criar_banco_dados(app):
+    """Cria tabelas e insere dados iniciais"""
+    with app.app_context():
+        try:
+            # Criar todas as tabelas
+            db.create_all()
+            print("✅ Tabelas criadas/verificadas")
+            
+            # Inserir dados iniciais se as tabelas estiverem vazias
+            from models import Quarto, Cardapio
+            
+            if Quarto.query.count() == 0:
+                inserir_dados_iniciais()
+                print("✅ Dados iniciais inseridos")
+                
+        except Exception as e:
+            print(f"⚠️  Erro ao criar banco: {e}")
+
+def inserir_dados_iniciais():
+    """Insere dados iniciais no banco"""
+    from models import Quarto, Cardapio, StatusQuarto, CategoriaCardapio
+    from datetime import datetime
+    
+    # Quartos
+    quartos = [
+        # Suítes
+        Quarto(numero='30', tipo='suíte', andar='Térreo', 
+               descricao='Suíte Luxo com hidromassagem e vista para o mar', 
+               capacidade=2, preco_diaria=500.00),
+        Quarto(numero='31', tipo='suíte', andar='Térreo',
+               descricao='Suíte Conforto com varanda privativa',
+               capacidade=2, preco_diaria=450.00),
+        Quarto(numero='32', tipo='suíte', andar='Térreo',
+               descricao='Suíte Familiar (até 4 pessoas)',
+               capacidade=4, preco_diaria=600.00),
+        Quarto(numero='33', tipo='suíte', andar='Térreo',
+               descricao='Suíte Premium com jacuzzi',
+               capacidade=2, preco_diaria=700.00),
+        
+        # Quartos 1º andar (101-105)
+        *[Quarto(numero=f'10{i}', tipo='quarto', andar='1º Andar',
+                descricao=f'Quarto standard {i} com vista para o jardim',
+                capacidade=2, preco_diaria=200.00) for i in range(1, 6)],
+        
+        # Quartos 2º andar (201-206)
+        *[Quarto(numero=f'20{i}', tipo='quarto', andar='2º Andar',
+                descricao=f'Quarto superior {i} com varanda',
+                capacidade=2, preco_diaria=250.00) for i in range(1, 7)],
+        
+        # Chalés
+        Quarto(numero='01', tipo='chalé', andar='Área externa',
+               descricao='Chalé familiar com cozinha e lareira',
+               capacidade=6, preco_diaria=800.00),
+        Quarto(numero='02', tipo='chalé', andar='Área externa',
+               descricao='Chalé romântico com banheira',
+               capacidade=2, preco_diaria=650.00),
+    ]
+    
+    for quarto in quartos:
+        db.session.add(quarto)
+    
+    # Cardápio
+    cardapio_items = [
+        # Entradas
+        Cardapio(nome='Salada Caesar', 
+                descricao='Alface romana, croutons, parmesão e molho Caesar',
+                categoria=CategoriaCardapio.ENTRADA, preco=25.00),
+        Cardapio(nome='Carpaccio de carne',
+                descricao='Finas fatias de carne com rúcula e parmesão',
+                categoria=CategoriaCardapio.ENTRADA, preco=35.00),
+        
+        # Principais
+        Cardapio(nome='Filé Mignon',
+                descricao='200g com molho madeira e purê de batatas',
+                categoria=CategoriaCardapio.PRINCIPAL, preco=85.00),
+        Cardapio(nome='Risoto de camarão',
+                descricao='Risoto cremoso com camarões frescos',
+                categoria=CategoriaCardapio.PRINCIPAL, preco=75.00),
+        Cardapio(nome='Moqueca de peixe',
+                descricao='Típica moqueca capixaba com arroz e pirão',
+                categoria=CategoriaCardapio.PRINCIPAL, preco=70.00),
+        Cardapio(nome='Frango à parmegiana',
+                descricao='Filé de frango com molho de tomate e queijo',
+                categoria=CategoriaCardapio.PRINCIPAL, preco=55.00),
+        
+        # Sobremesas
+        Cardapio(nome='Pudim de leite',
+                descricao='Tradicional pudim de leite condensado',
+                categoria=CategoriaCardapio.SOBREMESA, preco=15.00),
+        Cardapio(nome='Mousse de chocolate',
+                descricao='Mousse cremosa de chocolate belga',
+                categoria=CategoriaCardapio.SOBREMESA, preco=18.00),
+        
+        # Bebidas
+        Cardapio(nome='Suco natural',
+                descricao='Laranja, limão ou abacaxi com hortelã',
+                categoria=CategoriaCardapio.BEBIDA, preco=12.00),
+        Cardapio(nome='Refrigerante',
+                descricao='Lata 350ml',
+                categoria=CategoriaCardapio.BEBIDA, preco=8.00),
+        Cardapio(nome='Cerveja artesanal',
+                descricao='Chopp 500ml',
+                categoria=CategoriaCardapio.BEBIDA, preco=20.00),
+    ]
+    
+    for item in cardapio_items:
+        db.session.add(item)
+    
+    db.session.commit()
+
+# Ponto de entrada da aplicação
+if __name__ == '__main__':
+    app = create_app()
     app.run(debug=True, host='0.0.0.0', port=5000)

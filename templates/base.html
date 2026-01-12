@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ info.nome }} - {{ info.slogan }}</title>
+    <title>{{ pousada_nome }} - {{ pousada_slogan }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,14 +13,16 @@
     <header>
         <nav>
             <div class="logo">
-                <h1><i class="fas fa-umbrella-beach"></i> {{ info.nome }}</h1>
-                <p class="slogan">{{ info.slogan }}</p>
+                <h1><i class="fas fa-umbrella-beach"></i> {{ pousada_nome }}</h1>
+                <p class="slogan">{{ pousada_slogan }}</p>
             </div>
             <ul class="nav-links">
-                <li><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> Início</a></li>
-                <li><a href="{{ url_for('sobre') }}"><i class="fas fa-info-circle"></i> Sobre</a></li>
-                <li><a href="{{ url_for('quartos') }}"><i class="fas fa-bed"></i> Quartos</a></li>
-                <li><a href="{{ url_for('contato') }}"><i class="fas fa-envelope"></i> Contato</a></li>
+                <li><a href="{{ url_for('main.index') }}"><i class="fas fa-home"></i> Início</a></li>
+                <li><a href="{{ url_for('main.sobre') }}"><i class="fas fa-info-circle"></i> Sobre</a></li>
+                <li><a href="{{ url_for('main.quartos') }}"><i class="fas fa-bed"></i> Quartos</a></li>
+                <li><a href="{{ url_for('main.cardapio') }}"><i class="fas fa-utensils"></i> Cardápio</a></li>
+                <li><a href="{{ url_for('main.reservar') }}"><i class="fas fa-calendar-check"></i> Reservar</a></li>
+                <li><a href="{{ url_for('main.contato') }}"><i class="fas fa-envelope"></i> Contato</a></li>
             </ul>
         </nav>
     </header>
@@ -34,10 +36,10 @@
     <footer>
         <div class="footer-content">
             <div class="footer-section">
-                <h3><i class="fas fa-umbrella-beach"></i> {{ info.nome }}</h3>
-                <p>{{ info.endereco }}</p>
-                <p><i class="fas fa-phone"></i> {{ info.telefone }}</p>
-                <p><i class="fas fa-envelope"></i> {{ info.email }}</p>
+                <h3><i class="fas fa-umbrella-beach"></i> {{ pousada_nome }}</h3>
+                <p>{{ pousada_endereco }}</p>
+                <p><i class="fas fa-phone"></i> {{ pousada_telefone }}</p>
+                <p><i class="fas fa-envelope"></i> {{ pousada_email }}</p>
             </div>
             <div class="footer-section">
                 <h3>Horário de Funcionamento</h3>
@@ -47,11 +49,11 @@
             </div>
             <div class="footer-section">
                 <h3>Nosso Diferencial</h3>
-                <p><i class="fas fa-coffee"></i> {{ info.diferencial }}</p>
+                <p><i class="fas fa-coffee"></i> {{ pousada_diferencial }}</p>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 {{ info.nome }}. Todos os direitos reservados.</p>
+            <p>&copy; 2024 {{ pousada_nome }}. Todos os direitos reservados.</p>
         </div>
     </footer>
 </body>

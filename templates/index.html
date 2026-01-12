@@ -3,41 +3,38 @@
 {% block content %}
 <div class="hero">
     <div class="hero-content">
-        <h2>Bem-vindo à {{ info.nome }}</h2>
-        <p class="highlight">{{ info.diferencial }}</p>
-        <p>{{ info.descricao }}</p>
-        <a href="{{ url_for('quartos') }}" class="btn">Ver Quartos Disponíveis</a>
+        <h2>Bem-vindo à {{ pousada_nome }}</h2>
+        <p class="highlight">{{ pousada_diferencial }}</p>
+        <p>Uma pousada acolhedora no coração de Saquarema, perfeita para quem busca descanso e contato com a natureza.</p>
+        <a href="{{ url_for('main.reservar') }}" class="btn">Faça sua Reserva</a>
+        <a href="{{ url_for('main.quartos') }}" class="btn btn-secondary">Conheça Nossos Quartos</a>
     </div>
 </div>
 
+{% if quartos_destaque %}
 <section class="features">
-    <h2>Nossos Serviços</h2>
+    <h2>Quartos em Destaque</h2>
     <div class="features-grid">
-        {% for servico in info.servicos %}
+        {% for quarto in quartos_destaque %}
         <div class="feature-card">
-            {% if 'café' in servico.lower() %}
-                <i class="fas fa-coffee feature-icon"></i>
-            {% elif 'wi-fi' in servico.lower() %}
-                <i class="fas fa-wifi feature-icon"></i>
-            {% elif 'estacionamento' in servico.lower() %}
-                <i class="fas fa-parking feature-icon"></i>
-            {% elif 'praia' in servico.lower() %}
-                <i class="fas fa-umbrella-beach feature-icon"></i>
-            {% else %}
-                <i class="fas fa-check-circle feature-icon"></i>
-            {% endif %}
-            <h3>{{ servico }}</h3>
+            <i class="fas fa-bed feature-icon"></i>
+            <h3>{{ quarto.tipo|title }} {{ quarto.numero }}</h3>
+            <p>{{ quarto.descricao }}</p>
+            <p class="price">R$ {{ quarto.preco_diaria }}/noite</p>
+            <a href="{{ url_for('main.reservar') }}?quarto={{ quarto.id }}" class="btn-small">Reservar</a>
         </div>
         {% endfor %}
     </div>
 </section>
+{% endif %}
 
 <section class="location">
     <h2><i class="fas fa-map-marker-alt"></i> Nossa Localização</h2>
-    <p><strong>Endereço:</strong> {{ info.endereco }}</p>
+    <p><strong>Endereço:</strong> {{ pousada_endereco }}</p>
     <div class="map-placeholder">
         <p><i class="fas fa-map"></i> Saquarema, RJ - Região dos Lagos</p>
         <p>Próximo às praias de Jaconé e Itaúna</p>
+        <p>Ambiente tranquilo e familiar</p>
     </div>
 </section>
 {% endblock %}

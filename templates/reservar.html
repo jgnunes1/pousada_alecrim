@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="reserva">
+    <div class="container">
+        <h2>Faça sua Reserva</h2>
+        <p>Preencha os dados para garantir sua estadia na {{ info.nome }}</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="reserva-content">
+            <form method="POST" class="reserva-form">
+                <h3>Dados Pessoais</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nome">Nome Completo *</label>
+                        <input type="text" id="nome" name="nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cpf">CPF *</label>
+                        <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="telefone">Telefone *</label>
+                        <input type="tel" id="telefone" name="telefone" required>
+                    </div>
+                </div>
+                
+                <h3>Dados da Hospedagem</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quarto_id">Quarto *</label>
+                        <select id="quarto_id" name="quarto_id" required>
+                            <option value="">Selecione um quarto</option>
+                            {% for quarto in quartos %}
+                            <option value="{{ quarto.id }}">
+                                {{ quarto.tipo|title }} {{ quarto.numero }} - 
+                                {{ quarto.andar }} - R$ {{ quarto.preco_diaria }}/noite
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="num_hospedes">Número de Hóspedes *</label>
+                        <input type="number" id="num_hospedes" name="num_hospedes" min="1" max="6" value="1" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="checkin">Check-in *</label>
+                        <input type="date" id="checkin" name="checkin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="checkout">Check-out *</label>
+                        <input type="date" id="checkout" name="checkout" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">Confirmar Reserva</button>
+                <p class="form-note">* Campos obrigatórios</p>
+            </form>
+            
+            <div class="reserva-info">
+                <h3>Informações Importantes</h3>
+                <ul>
+                    <li><i class="fas fa-check-circle"></i> Check-in a partir das 14:00</li>
+                    <li><i class="fas fa-check-circle"></i> Check-out até 12:00</li>
+                    <li><i class="fas fa-check-circle"></i> Café da manhã incluso na diária</li>
+                    <li><i class="fas fa-check-circle"></i> Aceitamos cartões e pix</li>
+                    <li><i class="fas fa-check-circle"></i> Estacionamento gratuito</li>
+                </ul>
+                
+                <div class="quartos-disponiveis">
+                    <h4>Quartos Disponíveis</h4>
+                    {% for quarto in quartos %}
+                    <div class="quarto-card-mini">
+                        <h5>{{ quarto.tipo|title }} {{ quarto.numero }}</h5>
+                        <p>{{ quarto.andar }} - {{ quarto.capacidade }} pessoas</p>
+                        <p class="price">R$ {{ quarto.preco_diaria }}/noite</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.reserva-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    margin-top: 2rem;
+}
+
+.reserva-form h3 {
+    color: #2c3e50;
+    margin: 2rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #ffd166;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.form-note {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.reserva-info ul {
+    list-style: none;
+    margin: 1.5rem 0;
+}
+
+.reserva-info li {
+    margin: 0.8rem 0;
+    color: #555;
+}
+
+.quarto-card-mini {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+    border-left: 4px solid #4a6491;
+}
+
+.quarto-card-mini h5 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.quarto-card-mini .price {
+    color: #2c3e50;
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .reserva-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+// Script para datas mínimas
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('checkin').min = hoje;
+    
+    document.getElementById('checkin').addEventListener('change', function() {
+        document.getElementById('checkout').min = this.value;
+    });
+});
+</script>
+{% endblock %}
