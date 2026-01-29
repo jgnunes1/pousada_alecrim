@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="confirmation-card">
+        <div class="confirmation-header">
+            <div class="confirmation-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h1>Reserva Confirmada!</h1>
+            <p class="subtitle">Sua reserva foi realizada com sucesso</p>
+        </div>
+        
+        <div class="confirmation-body">
+            <div class="reserva-info">
+                <div class="info-item">
+                    <span class="info-label">Número da Reserva:</span>
+                    <span class="info-value"><strong>#{{ reserva.id }}</strong></span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value status-{{ reserva.status.value }}">
+                        {{ reserva.status.value|title }}
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Hóspede:</span>
+                    <span class="info-value">{{ reserva.hospede.nome_completo }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Quarto:</span>
+                    <span class="info-value">
+                        {{ reserva.quarto.tipo|title }} {{ reserva.quarto.numero }}
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Check-in:</span>
+                    <span class="info-value">
+                        {{ reserva.data_checkin.strftime('%d/%m/%Y') }}
+                        (a partir das 14:00)
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Check-out:</span>
+                    <span class="info-value">
+                        {{ reserva.data_checkout.strftime('%d/%m/%Y') }}
+                        (até 12:00)
+                    </span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Número de Hóspedes:</span>
+                    <span class="info-value">{{ reserva.num_hospedes }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">Valor Total:</span>
+                    <span class="info-value price">R$ {{ "%.2f"|format(reserva.valor_total) }}</span>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3><i class="fas fa-info-circle"></i> Próximos Passos</h3>
+                <ul>
+                    <li>Anote o número da reserva: <strong>#{{ reserva.id }}</strong></li>
+                    <li>Em breve entraremos em contato para confirmação</li>
+                    <li>Para cancelamentos ou alterações, ligue: {{ pousada_telefone }}</li>
+                    <li>Documentos necessários no check-in: RG, CPF e comprovante de reserva</li>
+                </ul>
+            </div>
+            
+            <div class="actions">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Voltar ao Início
+                </a>
+                <a href="{{ url_for('main.consultar_reserva') }}" class="btn btn-secondary">
+                    <i class="fas fa-search"></i> Consultar Reserva
+                </a>
+                <button onclick="window.print()" class="btn btn-outline">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.confirmation-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.confirmation-header {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.confirmation-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.confirmation-header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+}
+
+.confirmation-body {
+    padding: 2rem;
+}
+
+.reserva-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: #666;
+    font-weight: 500;
+}
+
+.info-value {
+    color: #333;
+    font-weight: 500;
+}
+
+.status-pendente {
+    color: #f39c12;
+    font-weight: 600;
+}
+
+.status-confirmada {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.price {
+    color: #2c3e50;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.instructions {
+    background: #e8f4fc;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.instructions h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.instructions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.instructions li {
+    padding: 0.5rem 0;
+    color: #2c3e50;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-top: 2rem;
+    border-top: 1px solid #eee;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #4a6491;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #2c3e50;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+.btn-outline {
+    background: white;
+    color: #4a6491;
+    border: 2px solid #4a6491;
+}
+
+.btn-outline:hover {
+    background: #4a6491;
+    color: white;
+}
+
+@media print {
+    .actions {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

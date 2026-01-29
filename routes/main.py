@@ -1,6 +1,6 @@
 # routes/main.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for
-from models import db, Quarto, Hospede, Reserva, Cardapio, StatusReserva
+from models import db, Quarto, Hospede, Reserva, Cardapio, StatusReserva, StatusQuarto
 from datetime import datetime
 import re
 
@@ -9,6 +9,16 @@ main_bp = Blueprint('main', __name__)
 @main_bp.context_processor
 def inject_pousada_info():
     from config import Config
+    info = {
+        'nome': Config.POUSADA_NOME,
+        'slogan': Config.POUSADA_SLOGAN,
+        'diferencial': Config.POUSADA_DIFERENCIAL,
+        'endereco': Config.POUSADA_ENDERECO,
+        'telefone': Config.POUSADA_TELEFONE,
+        'email': Config.POUSADA_EMAIL,
+        'descricao': Config.POUSADA_DESCRICAO,
+    }
+
     return {
         'pousada_nome': Config.POUSADA_NOME,
         'pousada_slogan': Config.POUSADA_SLOGAN,
@@ -16,11 +26,12 @@ def inject_pousada_info():
         'pousada_endereco': Config.POUSADA_ENDERECO,
         'pousada_telefone': Config.POUSADA_TELEFONE,
         'pousada_email': Config.POUSADA_EMAIL,
+        'info': info,
     }
 
 @main_bp.route('/')
 def index():
-    quartos = Quarto.query.filter_by(status='disponível').limit(3).all()
+    quartos = Quarto.query.filter_by(status=StatusQuarto.DISPONIVEL).limit(3).all()
     return render_template('index.html', quartos_destaque=quartos)
 
 @main_bp.route('/sobre')
@@ -71,7 +82,7 @@ def reservar():
             
             # Verificar se quarto existe e está disponível
             quarto = Quarto.query.get_or_404(quarto_id)
-            if quarto.status != 'disponível':
+            if quarto.status != StatusQuarto.DISPONIVEL:
                 flash('Este quarto não está disponível no momento.', 'danger')
                 return redirect(url_for('main.reservar'))
             
@@ -107,7 +118,7 @@ def reservar():
                 data_checkout=data_checkout,
                 num_hospedes=int(num_hospedes),
                 valor_total=valor_total,
-                status='pendente'
+                status=StatusReserva.PENDENTE
             )
             
             db.session.add(reserva)
@@ -122,5 +133,45 @@ def reservar():
             return redirect(url_for('main.reservar'))
     
     # GET: mostrar formulário
-    quartos_disponiveis = Quarto.query.filter_by(status='disponível').all()
+    quartos_disponiveis = Quarto.query.filter_by(status=StatusQuarto.DISPONIVEL).all()
     return render_template('reservar.html', quartos=quartos_disponiveis)
+
+def verificar_disponibilidade(quarto_id, data_checkin, data_checkout):
+    """Verifica se o quarto está disponível para o período"""
+    reservas_conflitantes = Reserva.query.filter(
+        Reserva.quarto_id == quarto_id,
+        Reserva.status.in_(['pendente', 'confirmada']),
+        Reserva.data_checkin < data_checkout,
+        Reserva.data_checkout > data_checkin
+    ).first()
+    
+    return reservas_conflitantes is None
+
+@main_bp.route('/reserva/confirmacao/<int:reserva_id>')
+def confirmacao_reserva(reserva_id):
+    """Página de confirmação da reserva"""
+    reserva = Reserva.query.get_or_404(reserva_id)
+    return render_template('confirmacao_reserva.html', reserva=reserva)
+
+@main_bp.route('/reserva/consultar', methods=['GET', 'POST'])
+def consultar_reserva():
+    """Página para consultar status da reserva"""
+    from forms import BuscaReservaForm
+    
+    form = BuscaReservaForm()
+    reserva = None
+    
+    if form.validate_on_submit():
+        # Buscar por número da reserva
+        if form.numero_reserva.data:
+            reserva = Reserva.query.get(form.numero_reserva.data)
+        
+        # Buscar por CPF
+        elif form.cpf_hospede.data:
+            hospede = Hospede.query.filter_by(cpf=form.cpf_hospede.data).first()
+            if hospede:
+                reserva = Reserva.query.filter_by(hospede_id=hospede.id)\
+                                      .order_by(Reserva.created_at.desc())\
+                                      .first()
+    
+    return render_template('consultar_reserva.html', form=form, reserva=reserva)

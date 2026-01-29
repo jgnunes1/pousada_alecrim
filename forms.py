@@ -138,3 +138,85 @@ class FiltroForm(FlaskForm):
                        default='')
     
     filtrar = SubmitField('Filtrar')
+
+    # forms.py - ADICIONAR estes formulários
+
+from datetime import datetime, date
+from wtforms.validators import ValidationError
+
+class ReservaForm(FlaskForm):
+    """Formulário para criar/editar reservas"""
+    quarto_id = SelectField('Quarto', 
+                           coerce=int,
+                           validators=[DataRequired()],
+                           choices=[])  # Preenchido dinamicamente
+    
+    hospede_id = SelectField('Hóspede', 
+                            coerce=int,
+                            validators=[DataRequired()],
+                            choices=[])  # Preenchido dinamicamente
+    
+    data_checkin = DateField('Data de Check-in',
+                            format='%Y-%m-%d',
+                            validators=[DataRequired()],
+                            default=datetime.today)
+    
+    data_checkout = DateField('Data de Check-out',
+                             format='%Y-%m-%d',
+                             validators=[DataRequired()],
+                             default=lambda: datetime.today() + timedelta(days=1))
+    
+    num_hospedes = IntegerField('Número de Hóspedes',
+                               validators=[DataRequired(), NumberRange(min=1, max=10)],
+                               default=1)
+    
+    status = SelectField('Status',
+                        choices=[(status.value, status.value.title()) 
+                                for status in StatusReserva],
+                        default=StatusReserva.PENDENTE.value)
+    
+    observacoes = TextAreaField('Observações',
+                               validators=[Optional(), Length(max=500)],
+                               render_kw={"placeholder": "Pedidos especiais, comemorações, etc.",
+                                         "rows": 3})
+    
+    submit = SubmitField('Salvar Reserva')
+    
+    def validate_data_checkout(self, field):
+        if field.data <= self.data_checkin.data:
+            raise ValidationError('Data de check-out deve ser posterior ao check-in.')
+        
+        # Máximo de 30 dias
+        max_dias = (field.data - self.data_checkin.data).days
+        if max_dias > 30:
+            raise ValidationError('Reserva máxima: 30 dias.')
+
+class BuscaReservaForm(FlaskForm):
+    """Formulário para busca de reservas"""
+    numero_reserva = StringField('Número da Reserva',
+                                validators=[Optional()],
+                                render_kw={"placeholder": "Ex: 123"})
+    
+    cpf_hospede = StringField('CPF do Hóspede',
+                             validators=[Optional()],
+                             render_kw={"placeholder": "000.000.000-00"})
+    
+    data_inicio = DateField('Data Inicial',
+                           format='%Y-%m-%d',
+                           validators=[Optional()])
+    
+    data_fim = DateField('Data Final',
+                        format='%Y-%m-%d',
+                        validators=[Optional()])
+    
+    status = SelectField('Status',
+                        choices=[
+                            ('', 'Todos'),
+                            ('pendente', 'Pendente'),
+                            ('confirmada', 'Confirmada'),
+                            ('cancelada', 'Cancelada'),
+                            ('concluída', 'Concluída')
+                        ],
+                        default='')
+    
+    buscar = SubmitField('Buscar')

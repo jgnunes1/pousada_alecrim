@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="consultar-container">
+        <div class="consultar-header">
+            <h1><i class="fas fa-search"></i> Consultar Reserva</h1>
+            <p>Verifique o status da sua reserva</p>
+        </div>
+        
+        <div class="consultar-content">
+            <div class="consultar-form">
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="form-group">
+                        {{ form.numero_reserva.label }}
+                        {{ form.numero_reserva(class="form-control") }}
+                    </div>
+                    
+                    <div class="divider">
+                        <span>OU</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        {{ form.cpf_hospede.label }}
+                        {{ form.cpf_hospede(class="form-control", 
+                                          placeholder="000.000.000-00") }}
+                    </div>
+                    
+                    <div class="form-submit">
+                        {{ form.buscar(class="btn btn-primary") }}
+                    </div>
+                </form>
+                
+                <div class="help-info">
+                    <h3><i class="fas fa-question-circle"></i> Precisa de ajuda?</h3>
+                    <ul>
+                        <li>O número da reserva foi enviado por e-mail</li>
+                        <li>Você também pode usar seu CPF</li>
+                        <li>Dúvidas? Ligue: {{ pousada_telefone }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            {% if reserva %}
+            <div class="reserva-result">
+                <h2><i class="fas fa-file-alt"></i> Resultado da Busca</h2>
+                
+                <div class="reserva-card">
+                    <div class="reserva-header">
+                        <h3>Reserva #{{ reserva.id }}</h3>
+                        <span class="status status-{{ reserva.status.value }}">
+                            {{ reserva.status.value|title }}
+                        </span>
+                    </div>
+                    
+                    <div class="reserva-details">
+                        <div class="detail">
+                            <span class="label">Hóspede:</span>
+                            <span class="value">{{ reserva.hospede.nome_completo }}</span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Quarto:</span>
+                            <span class="value">
+                                {{ reserva.quarto.tipo|title }} {{ reserva.quarto.numero }}
+                            </span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Período:</span>
+                            <span class="value">
+                                {{ reserva.data_checkin.strftime('%d/%m/%Y') }} 
+                                a 
+                                {{ reserva.data_checkout.strftime('%d/%m/%Y') }}
+                                ({{ (reserva.data_checkout - reserva.data_checkin).days }} noites)
+                            </span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Valor Total:</span>
+                            <span class="value price">R$ {{ "%.2f"|format(reserva.valor_total) }}</span>
+                        </div>
+                        
+                        <div class="detail">
+                            <span class="label">Data da Reserva:</span>
+                            <span class="value">
+                                {{ reserva.created_at.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="reserva-actions">
+                        {% if reserva.status.value == 'pendente' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock"></i>
+                            Aguardando confirmação. Em breve entraremos em contato.
+                        </div>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('main.confirmacao_reserva', reserva_id=reserva.id) }}" 
+                           class="btn btn-outline">
+                            <i class="fas fa-eye"></i> Ver Detalhes Completos
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% elif request.method == 'POST' %}
+            <div class="reserva-result">
+                <div class="empty-state">
+                    <i class="fas fa-search fa-3x"></i>
+                    <h3>Nenhuma reserva encontrada</h3>
+                    <p>Verifique os dados informados ou entre em contato conosco.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.consultar-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.consultar-header {
+    background: #4a6491;
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.consultar-header h1 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.consultar-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+@media (max-width: 768px) {
+    .consultar-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.consultar-form {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 1px;
+    background: #ddd;
+}
+
+.divider span {
+    background: #f8f9fa;
+    padding: 0 1rem;
+    color: #666;
+    position: relative;
+    font-size: 0.9rem;
+}
+
+.form-submit {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.help-info {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid #4a6491;
+}
+
+.help-info h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.help-info ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.help-info li {
+    padding: 0.3rem 0;
+    color: #555;
+}
+
+.reserva-result {
+    padding: 1rem;
+}
+
+.reserva-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.reserva-header {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.reserva-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.status {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-pendente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-confirmada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-cancelada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-concluída {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.reserva-details {
+    padding: 1.5rem;
+}
+
+.detail {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.detail:last-child {
+    border-bottom: none;
+}
+
+.label {
+    color: #666;
+    font-weight: 500;
+}
+
+.value {
+    color: #333;
+    text-align: right;
+}
+
+.price {
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.reserva-actions {
+    padding: 1.5rem;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.empty-state i {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #4a6491;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: #2c3e50;
+}
+
+.btn-outline {
+    background: white;
+    color: #4a6491;
+    border: 2px solid #4a6491;
+    padding: 0.6rem 1.2rem;
+}
+
+.btn-outline:hover {
+    background: #4a6491;
+    color: white;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Máscara para CPF
+    const cpfInput = document.getElementById('cpf_hospede');
+    if (cpfInput) {
+        cpfInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.length > 11) value = value.substring(0, 11);
+            
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+            }
+            
+            e.target.value = value;
+        });
+    }
+});
+</script>
+{% endblock %}
