@@ -1,6 +1,7 @@
 # routes/main.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from models import db, Quarto, Hospede, Reserva, Cardapio, StatusReserva, StatusQuarto
+from forms import HospedeForm
 from datetime import datetime
 import re
 
@@ -175,3 +176,35 @@ def consultar_reserva():
                                       .first()
     
     return render_template('consultar_reserva.html', form=form, reserva=reserva)
+
+
+@main_bp.route('/hospede/cadastrar', methods=['GET', 'POST'])
+def cadastrar_hospede():
+    """Rota para cadastro de hóspedes"""
+    form = HospedeForm()
+    if form.validate_on_submit():
+        try:
+            # Verificar se CPF já cadastrado
+            cpf_val = form.cpf.data.strip()
+            existing = Hospede.query.filter_by(cpf=cpf_val).first()
+            if existing:
+                flash('Hóspede com este CPF já cadastrado.', 'warning')
+                return redirect(url_for('main.cadastrar_hospede'))
+
+            hospede = Hospede(
+                nome_completo=form.nome_completo.data.strip(),
+                cpf=cpf_val,
+                email=(form.email.data or '').strip(),
+                telefone=form.telefone.data.strip(),
+                endereco=(form.endereco.data or '').strip()
+            )
+            db.session.add(hospede)
+            db.session.commit()
+            flash('Hóspede cadastrado com sucesso.', 'success')
+            return redirect(url_for('main.index'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cadastrar hóspede: {str(e)}', 'danger')
+            return redirect(url_for('main.cadastrar_hospede'))
+
+    return render_template('hospede_cadastro.html', form=form)

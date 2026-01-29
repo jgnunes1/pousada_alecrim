@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Hóspedes{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Hóspedes</h2>
+  <a href="{{ url_for('admin.nova_hospede') }}" class="btn btn-primary mb-3">Novo Hóspede</a>
+
+  {% if hospedes %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>CPF</th>
+        <th>E-mail</th>
+        <th>Telefone</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hospedes %}
+      <tr>
+        <td>{{ h.nome_completo }}</td>
+        <td>{{ h.cpf }}</td>
+        <td>{{ h.email or '-' }}</td>
+        <td>{{ h.telefone or '-' }}</td>
+        <td>
+          <a href="{{ url_for('admin.editar_hospede', id=h.id) }}" class="btn btn-sm btn-secondary">Editar</a>
+          <form method="post" action="{{ url_for('admin.excluir_hospede', id=h.id) }}" style="display:inline" onsubmit="return confirm('Confirma exclusão deste hóspede?');">
+            <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>Nenhum hóspede cadastrado.</p>
+  {% endif %}
+</div>
+{% endblock %}

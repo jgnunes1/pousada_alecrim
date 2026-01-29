@@ -62,7 +62,7 @@ def logout():
 
 # routes/admin.py - ADICIONAR estas rotas para reservas
 
-from forms import ReservaForm, BuscaReservaForm
+from forms import ReservaForm, BuscaReservaForm, HospedeForm
 from datetime import datetime, timedelta
 
 @admin_bp.route('/reservas')
@@ -266,3 +266,86 @@ def alterar_status_reserva(id):
         flash('Status inválido.', 'danger')
 
     return redirect(url_for('admin.admin_reservas'))
+
+
+@admin_bp.route('/hospedes')
+@login_required
+def admin_hospedes():
+    hospedes = Hospede.query.order_by(Hospede.nome_completo).all()
+    return render_template('admin/hospedes.html', hospedes=hospedes)
+
+
+@admin_bp.route('/hospedes/nova', methods=['GET', 'POST'])
+@login_required
+def nova_hospede():
+    form = HospedeForm()
+    if form.validate_on_submit():
+        try:
+            cpf_val = (form.cpf.data or '').strip()
+            existing = Hospede.query.filter_by(cpf=cpf_val).first()
+            if existing:
+                flash('Já existe hóspede com este CPF.', 'warning')
+                return redirect(url_for('admin.nova_hospede'))
+
+            hospede = Hospede(
+                nome_completo=form.nome_completo.data.strip(),
+                cpf=cpf_val,
+                email=(form.email.data or '').strip(),
+                telefone=form.telefone.data.strip(),
+                endereco=(form.endereco.data or '').strip()
+            )
+            db.session.add(hospede)
+            db.session.commit()
+            flash('Hóspede cadastrado com sucesso.', 'success')
+            return redirect(url_for('admin.admin_hospedes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao cadastrar hóspede: {str(e)}', 'danger')
+
+    return render_template('admin/hospede_form.html', form=form, title='Novo Hóspede')
+
+
+@admin_bp.route('/hospedes/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_hospede(id):
+    hospede = Hospede.query.get_or_404(id)
+    form = HospedeForm(obj=hospede)
+
+    if form.validate_on_submit():
+        try:
+            cpf_val = (form.cpf.data or '').strip()
+            if cpf_val != hospede.cpf:
+                other = Hospede.query.filter_by(cpf=cpf_val).first()
+                if other:
+                    flash('Outro hóspede já usa este CPF.', 'warning')
+                    return redirect(url_for('admin.editar_hospede', id=id))
+
+            hospede.nome_completo = form.nome_completo.data.strip()
+            hospede.cpf = cpf_val
+            hospede.email = (form.email.data or '').strip()
+            hospede.telefone = form.telefone.data.strip()
+            hospede.endereco = (form.endereco.data or '').strip()
+
+            db.session.commit()
+            flash('Hóspede atualizado com sucesso.', 'success')
+            return redirect(url_for('admin.admin_hospedes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar hóspede: {str(e)}', 'danger')
+
+    return render_template('admin/hospede_form.html', form=form, hospede=hospede, title='Editar Hóspede')
+
+
+@admin_bp.route('/hospedes/excluir/<int:id>', methods=['POST'])
+@login_required
+def excluir_hospede(id):
+    hospede = Hospede.query.get_or_404(id)
+    try:
+        db.session.delete(hospede)
+        db.session.commit()
+        flash('Hóspede excluído com sucesso.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erro ao excluir hóspede: {str(e)}', 'danger')
+
+    return redirect(url_for('admin.admin_hospedes'))
