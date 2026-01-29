@@ -4,6 +4,7 @@ from models import db, Quarto, Hospede, Reserva, Cardapio, StatusReserva, Status
 from forms import HospedeForm
 from datetime import datetime
 import re
+from urllib.parse import quote_plus
 
 main_bp = Blueprint('main', __name__)
 
@@ -20,6 +21,10 @@ def inject_pousada_info():
         'descricao': Config.POUSADA_DESCRICAO,
     }
 
+    # Construir URL de embed do Google Maps usando o endereço configurado
+    endereco_query = quote_plus(Config.POUSADA_ENDERECO)
+    maps_embed_url = f"https://www.google.com/maps?q={endereco_query}&output=embed"
+
     return {
         'pousada_nome': Config.POUSADA_NOME,
         'pousada_slogan': Config.POUSADA_SLOGAN,
@@ -28,6 +33,7 @@ def inject_pousada_info():
         'pousada_telefone': Config.POUSADA_TELEFONE,
         'pousada_email': Config.POUSADA_EMAIL,
         'info': info,
+        'maps_embed_url': maps_embed_url,
     }
 
 @main_bp.route('/')
